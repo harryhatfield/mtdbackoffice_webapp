@@ -20,6 +20,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
     { href: "/dashboard/client-details", label: "What your clients see" },
     ...(hasSprint ? [{ href: "/dashboard/processes", label: "Jobs to automate" }] : []),
     { href: "/dashboard/documents", label: "Documents" },
+    { href: "/dashboard/care", label: "Care plan" },
     { href: "/dashboard/support", label: keys.some(isCare) ? "Support & calls" : "Support" },
     { href: "/dashboard/account", label: "Account" },
     ...(user.role === "admin" ? [{ href: "/admin", label: "Admin →" }] : []),

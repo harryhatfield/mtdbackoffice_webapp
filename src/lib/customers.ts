@@ -4,6 +4,7 @@ import { getDb, schema } from "@/db";
 import { appUrl, sendEmail } from "./email";
 import { newToken, sha256 } from "./crypto";
 import { PRODUCTS, isProductKey } from "./products";
+import { LIVE_STATUSES, getSubscription } from "./billing";
 
 export const normEmail = (e: string) => e.trim().toLowerCase();
 
@@ -12,9 +13,10 @@ export async function grantProduct(email: string, productKey: string, source: "m
   if (!isProductKey(productKey)) throw new Error(`Unknown product ${productKey}`);
   const db = await getDb();
   email = normEmail(email);
-  await db.insert(schema.purchases).values({ email, productKey, source, externalRef }).onConflictDoNothing();
+  const inserted = await db.insert(schema.purchases).values({ email, productKey, source, externalRef }).onConflictDoNothing().returning({ id: schema.purchases.id });
   const [u] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, email));
   if (u) await linkPurchases(u.id, email);
+  return inserted.length > 0; // false if this exact purchase was already recorded
 }
 
 export async function linkPurchases(userId: string, email: string) {
@@ -68,10 +70,17 @@ export async function sendSetupLink(email: string, kind: "setup" | "reset") {
   );
 }
 
+/**
+ * What a customer currently has. One-off products come from purchases. Care plans come from the live
+ * subscription (so cancelling or switching in Stripe takes effect), except plans an admin granted manually.
+ */
 export async function userProductKeys(userId: string): Promise<string[]> {
   const db = await getDb();
-  const rows = await db.select({ k: schema.purchases.productKey }).from(schema.purchases).where(eq(schema.purchases.userId, userId));
-  return [...new Set(rows.map((r) => r.k))];
+  const rows = await db.select({ k: schema.purchases.productKey, src: schema.purchases.source }).from(schema.purchases).where(eq(schema.purchases.userId, userId));
+  const keys = new Set(rows.filter((r) => !(r.k.startsWith("care_") && r.src === "stripe")).map((r) => r.k));
+  const sub = await getSubscription(userId);
+  if (sub && LIVE_STATUSES.includes(sub.status)) keys.add(sub.productKey);
+  return [...keys];
 }
 
 export async function progressFor(userIds: string[]) {

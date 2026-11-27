@@ -46,3 +46,12 @@ export const BUSINESS_TYPES = [
   ["sole_trader", "Sole trader"], ["landlord", "Landlord"], ["partnership", "Partnership"], ["limited_company", "Limited company"],
 ] as const;
 export const TURNOVER_BANDS = ["Under £30,000", "£30,000 – £50,000", "£50,000 – £90,000", "£90,000 – £250,000", "Over £250,000"];
+
+/** What we charge at checkout (GBP, pence, ex-VAT). Care plans are monthly subscriptions. */
+export const PRICING: Record<ProductKey, { pence: number; mode: "payment" | "subscription"; description: string }> = {
+  setup: { pence: 49500, mode: "payment", description: "HMRC-recognised MTD software, bank feeds, receipt capture and invoice reminders. Delivered within 10 working days." },
+  sprint: { pence: 150000, mode: "payment", description: "Three automations plus an AI assistant trained on your documents. Two weeks." },
+  care_99: { pence: 9900, mode: "subscription", description: "Monthly checks, fixes and quarterly MTD reminders." },
+  care_299: { pence: 29900, mode: "subscription", description: "Growth plan: more support hours for busier teams." },
+  care_599: { pence: 59900, mode: "subscription", description: "Pro plan: priority support and regular automation tweaks." },
+};

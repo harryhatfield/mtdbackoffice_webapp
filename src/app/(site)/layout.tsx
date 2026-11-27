@@ -24,7 +24,7 @@ const ld = JSON.stringify({
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB">
+    <html lang="en-GB" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js');" }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld }} />

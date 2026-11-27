@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull().default(""),
   passwordHash: text("password_hash"),
+  stripeCustomerId: text("stripe_customer_id").unique(),
   role: text("role", { enum: ["customer", "admin"] }).notNull().default("customer"),
   createdAt: createdAt(),
 });
@@ -155,3 +156,14 @@ export const auditLog = pgTable("audit_log", {
   action: text("action").notNull(),
   createdAt: createdAt(),
 });
+
+// Mirrors the customer's Stripe subscription (ongoing care plan). Matched to a user via users.stripe_customer_id.
+export const subscriptions = pgTable("subscriptions", {
+  stripeSubscriptionId: text("stripe_subscription_id").primaryKey(),
+  stripeCustomerId: text("stripe_customer_id").notNull(),
+  productKey: text("product_key").notNull(),
+  status: text("status").notNull(), // Stripe status: active | trialing | past_due | canceled | unpaid | ...
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("subscriptions_customer_idx").on(t.stripeCustomerId)]);

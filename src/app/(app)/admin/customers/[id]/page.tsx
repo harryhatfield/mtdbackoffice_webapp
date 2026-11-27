@@ -5,6 +5,7 @@ import { PRODUCTS, isProductKey } from "@/lib/products";
 import { Field, Form } from "@/components/Form";
 import { Thread } from "@/components/Thread";
 import { RevealSensitive } from "@/components/RevealSensitive";
+import { getSubscription } from "@/lib/billing";
 import { addProduct, maskedSensitive, resendInvite, setTaskStatus, staffReply } from "@/app/actions/admin";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +23,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const tickets = await db.select().from(schema.tickets).where(eq(schema.tickets.userId, id)).orderBy(desc(schema.tickets.lastMessageAt));
   const msgs = await db.select().from(schema.ticketMessages).orderBy(schema.ticketMessages.createdAt);
   const sens = await maskedSensitive(id);
+  const sub = await getSubscription(id);
   const keys = [...new Set(purchases.map((p) => p.productKey))].filter(isProductKey);
   const row = (k: string, v: unknown) => v ? <tr key={k}><td className="muted" style={{ width: 200 }}>{k}</td><td>{String(v)}</td></tr> : null;
 
@@ -38,6 +40,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <Form action={addProduct.bind(null, id)} submit="Add product">
           <Field label="Add product" name="product"><select id="product" name="product">{Object.entries(PRODUCTS).map(([k, p]) => <option key={k} value={k}>{p.name}</option>)}</select></Field>
         </Form></section>
+
+      <section className="card"><h2>Billing</h2>
+        {sub ? <p>Care plan: <strong>{isProductKey(sub.productKey) ? PRODUCTS[sub.productKey].name : sub.productKey}</strong> · <span className={`pill ${sub.status === "active" ? "pill-done" : "pill-warn"}`}>{sub.status}{sub.cancelAtPeriodEnd ? " (ending)" : ""}</span>
+          {sub.currentPeriodEnd && <span className="muted"> · {sub.cancelAtPeriodEnd ? "ends" : "renews"} {sub.currentPeriodEnd.toLocaleDateString("en-GB")}</span>}</p>
+          : <p className="muted">No Stripe care subscription.</p>}
+        {u.stripeCustomerId && <p className="small muted">Stripe customer {u.stripeCustomerId}</p>}</section>
 
       {keys.filter((k) => PRODUCTS[k].tasks.length).map((k) => (
         <section className="card" key={k}><h2>{PRODUCTS[k].name} checklist</h2>

@@ -8,6 +8,13 @@
       "when": 1795781065261,
       "tag": "0000_ordinary_bucky",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795790740269,
+      "tag": "0001_last_the_hood",
+      "breakpoints": true
     }
   ]
 }

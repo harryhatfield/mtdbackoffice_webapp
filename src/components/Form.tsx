@@ -4,8 +4,8 @@ import type { FormState } from "@/lib/form";
 
 type Action = (state: FormState, fd: FormData) => Promise<FormState>;
 
-export function Form({ action, children, submit = "Save", className, reset }: {
-  action: Action; children: ReactNode; submit?: string; className?: string; reset?: boolean;
+export function Form({ action, children, submit = "Save", className, reset, buttonClass = "btn btn-primary" }: {
+  action: Action; children: ReactNode; submit?: string; className?: string; reset?: boolean; buttonClass?: string;
 }) {
   // We call the action from onSubmit (not the form `action` prop) so React 19 does not
   // wipe the user's input after a validation error. "Add" forms clear themselves on success.
@@ -25,7 +25,7 @@ export function Form({ action, children, submit = "Save", className, reset }: {
       {state?.error && <div className="alert alert-error" role="alert">{state.error}</div>}
       {state?.ok && <div className="alert alert-ok" role="status">{state.ok}</div>}
       {children}
-      <button className="btn btn-primary" disabled={pending}>{pending ? "Working…" : submit}</button>
+      <button className={buttonClass} disabled={pending}>{pending ? "Working…" : submit}</button>
     </form>
   );
 }
