@@ -7,7 +7,8 @@ import { getUser } from "@/lib/auth";
 
 export const metadata = { title: "Log in" };
 export default async function Page() {
-  if (await getUser()) redirect("/");
+  const user = await getUser();
+  if (user) redirect(user.role === "admin" ? "/admin" : "/dashboard"); // already signed in
   return (
     <AuthShell title="Welcome back" lead="Log in to see your setup and send us what we need."
       foot={<><Link href="/forgot">Forgotten your password?</Link><Link href="/activate">First time here?</Link></>}>
