@@ -1,0 +1,30 @@
+// Create the first staff login:  ADMIN_EMAIL=you@x.co ADMIN_PASSWORD='long passphrase' npm run db:seed
+import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle as drizzleLite } from "drizzle-orm/pglite";
+import { migrate as migrateLite } from "drizzle-orm/pglite/migrator";
+import { PGlite } from "@electric-sql/pglite";
+import { Pool } from "pg";
+import { eq } from "drizzle-orm";
+import { mkdirSync } from "node:fs";
+import { scryptSync, randomBytes } from "node:crypto";
+import * as schema from "../src/db/schema";
+
+const { ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
+const DATABASE_URL = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL?.replace("-pooler", "");
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) throw new Error("Need ADMIN_EMAIL and ADMIN_PASSWORD (and DATABASE_URL for Neon; omit for local dev)");
+if (ADMIN_PASSWORD.length < 12) throw new Error("Use at least 12 characters");
+const salt = randomBytes(16);
+const hash = scryptSync(ADMIN_PASSWORD, salt, 64, { N: 16384, r: 8, p: 1 });
+const passwordHash = `scrypt$16384$8$1$${salt.toString("base64")}$${hash.toString("base64")}`;
+const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL }) : null;
+if (!pool) mkdirSync(".data/pglite", { recursive: true });
+const lite = pool ? null : new PGlite(".data/pglite");
+const db = (pool ? drizzle(pool, { schema }) : drizzleLite(lite!, { schema })) as ReturnType<typeof drizzle<typeof schema>>;
+if (lite) await migrateLite(drizzleLite(lite, { schema }), { migrationsFolder: "drizzle" });
+const email = ADMIN_EMAIL.toLowerCase();
+const [ex] = await db.select().from(schema.users).where(eq(schema.users.email, email));
+if (ex) await db.update(schema.users).set({ role: "admin", passwordHash }).where(eq(schema.users.id, ex.id));
+else await db.insert(schema.users).values({ email, name: "Admin", role: "admin", passwordHash });
+await pool?.end();
+await lite?.close();
+console.log(`Admin ready: ${email}`);
